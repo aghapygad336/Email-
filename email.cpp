@@ -7,7 +7,7 @@ Write your code in this editor and press "Run" button to compile and execute it.
 *******************************************************************************/
 /*
 https://www.tutorialspoint.com/semaphores-in-operating-system
-
+http://www.cplusplus.com/forum/unices/129572/
 
 */
 #include <iostream>
