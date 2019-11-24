@@ -3,6 +3,7 @@
 https://www.tutorialspoint.com/semaphores-in-operating-system
 https://docs.oracle.com/cd/E19683-01/806-6867/6jfpgdcnj/index.html#sync-19683
 https://www.youtube.com/watch?v=cIkzOOcdh2Y
+http://web.cecs.pdx.edu/~walpole/class/cs333/fall2009/slides/6.pdf monitor
 */
 #include<stdio.h>
 #include <pthread.h> 
