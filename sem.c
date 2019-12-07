@@ -1,57 +1,52 @@
-/*https://www.sourceware.org/pthreads-win32/manual/pthread_mutex_init.html*/
-#include <stdio.h>
+
 #include <pthread.h>
-#include <stdlib.h>
-#define NTHREADS 10
-void *thread_function(void *);
-void *save_Buffer_thread(void *);
+#include <semaphore.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#define NTHREADS 25
 
-pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-int  counter = 0;
 
-void main()
+pthread_t pth_sender;
+pthread_t pth_receiver;
+pthread_mutex_t sem_lock_buffer; 
+
+int count_message; 
+int num_attempts=0;
+
+
+void *send_message(void* a)
 {
-    pthread_t *thread_id;
-
-thread_id = malloc(sizeof(pthread_t)*NTHREADS);
-   int i, j;
-
-   for(i=0; i < NTHREADS; i++)
-   {
-      pthread_create( &thread_id[i], NULL, thread_function, NULL );
-   }
-
-   for(j=0; j < NTHREADS; j++)
-   {
-      pthread_join( thread_id[j], NULL);
-   }
-
-
-
-
-
-
-int value =counter ;
-    int *p_buffer;
-    p_buffer=&value;
-   //Push to buffer
-       pthread_t reader_Buffer_thread;
-
-         pthread_create(&reader_Buffer_thread, NULL,save_Buffer_thread, p_buffer);
-      pthread_join(reader_Buffer_thread, NULL);
-}
-void *save_Buffer_thread(void *param_buffer)
-{
-      int buffer = *(int *) param_buffer;
-      printf("Buffer - > :%d",buffer);
+    pthread_mutex_lock(&sem_lock_buffer); // before entering critical section and sending the message and changing the buffer sem-writer
+    printf("message from thread \n");
+    printf("sender write .. \n");
+    pthread_mutex_unlock(&sem_lock_buffer);
 }
 
 
-void *thread_function(void *dummyPtr)
+void *receive_message(void* a)
 {
-   printf("Thread number %ld\n", pthread_self());
-   pthread_mutex_lock( &mutex1 );
-   counter++;
+    pthread_mutex_lock(&sem_lock_buffer);
+    printf("message from thread \n");
+    printf("thread ID  %ld", pthread_self());
+    pthread_mutex_unlock(&sem_lock_buffer);
+}
 
-   pthread_mutex_unlock( &mutex1 );
+
+
+int main()
+{
+    while(1 && num_attempts!=NTHREADS){
+        pthread_create(&pth_sender,NULL,send_message,NULL);
+        pthread_create(&pth_receiver,NULL,receive_message,NULL);
+        num_attempts+=1;
+
+    }
+
+    pthread_join(pth_sender, NULL);
+    pthread_join(pth_receiver, NULL);
+
+    pthread_mutex_destroy(&sem_lock_buffer);
+
+    return 0;
 }
