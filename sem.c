@@ -1,4 +1,3 @@
-
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdio.h>
@@ -6,6 +5,7 @@
 #include <time.h>
 #define NTHREADS 25
 
+pthread_t mCounter;
 
 pthread_t pth_sender;
 pthread_t pth_receiver;
@@ -33,10 +33,11 @@ void *receive_message(void* a)
 }
 
 
+void *mCounter_message(void* a)
 
-int main()
 {
-    while(1 && num_attempts!=NTHREADS){
+    
+ while(1 && num_attempts!=NTHREADS){
         pthread_create(&pth_sender,NULL,send_message,NULL);
         pthread_create(&pth_receiver,NULL,receive_message,NULL);
         num_attempts+=1;
@@ -44,7 +45,15 @@ int main()
     }
 
     pthread_join(pth_sender, NULL);
-    pthread_join(pth_receiver, NULL);
+    pthread_join(pth_receiver, NULL);   
+    
+    
+}
+int main()
+{
+    
+        pthread_create(&mCounter,NULL,mCounter_message,NULL);
+    pthread_join(mCounter, NULL);   
 
     pthread_mutex_destroy(&sem_lock_buffer);
 
