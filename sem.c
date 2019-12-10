@@ -8,15 +8,20 @@
 pthread_t mCounter;
 pthread_t pth_sender;
 pthread_t pth_receiver;
-pthread_mutex_t sem_lock_buffer; 
+pthread_mutex_t sem_lock_buffer;//Problem (1)
+pthread_mutex_t full,empty,mutex;//Problem(2)
+
 int count_message; 
 int num_attempts=0;
 int buffer;
+void * consumer();
+void * producer();
+
 
 void *send_message(void*a)
 {    while(1)
     {
-    pthread_mutex_lock(&sem_lock_buffer); // before entering critical section and sending the message and changing the buffer sem-writer
+    pthread_mutex_lock(&sem_lock_buffer);
     printf("Wake Up thread %d \n",count_message);//threadid-> nomattemmp
     count_message++;
     pthread_mutex_unlock(&sem_lock_buffer);
@@ -44,7 +49,30 @@ void *receive_message(void* a)
 }
 
 
+void *producer()    
+{
+    do{
+        sleep(2);            
+        pthread_mutex_lock(&empty);
+        pthread_mutex_lock(&mutex);
+//buffer
+       pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&full);
+    	pthread_exit(0);
+    }while(TRUE);
+}
+void *consumer()
 
+{     do{
+        sleep(2);
+        pthread_mutex_lock(&full);
+        pthread_mutex_lock(&mutex);
+//buffer
+pthread_mutex_unlock(&mutex);
+        pthread_mutex_unlock(&empty);
+        pthread_exit(0);
+    }while(TRUE);
+}
 int main()
 {
     
