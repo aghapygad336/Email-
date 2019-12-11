@@ -3,99 +3,115 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#define NTHREADS 2
+#define NTHREADS 5
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 pthread_t pth_consumer;
 pthread_t pth_sender;
 pthread_t pth_receiver;
-pthread_mutex_t sem_lock_buffer;//Problem (1)
-pthread_mutex_t s,n,e;//Problem (2)
-int front,rear;
-int count_message; 
-int num_attempts=0;
+sem_t sender_semaphore,n,e;
+int out_dequeu,in_Enqueu;
+int mCount_message;
 int buffer;
 int *queueMessages;
 
 
 void *send_message(void*a)
-{    while(1)
+{
+    while(1)
     {
-    pthread_mutex_lock(&s);
-    printf("Wake Up thread %d \n",count_message);//threadid-> nomattemmp
-    count_message++;
-    pthread_mutex_unlock(&s);
-      sleep(2);
+        sem_wait(&sender_semaphore);
+        printf("\nMessage is written As Counter %d \n",mCount_message);
+        mCount_message++;
+        sem_post(&sender_semaphore);
+        sleep(2);
 
     }
-  
+
 }
 
+//Monitor Problem is the producer
+void *receive_message(void* a)
+{
+    while(1)
+    {
+        sem_wait(&e);
+        sem_wait(&sender_semaphore);
+        buffer= mCount_message;
+        printf("\nRecived Message-> %d \n", mCount_message);
+        printf("\nBUFFER Has Recieved-> %d\n",buffer);
+        if(in_Enqueu == NTHREADS -1 && out_dequeu!=0)
+            in_Enqueu=-1;
+        in_Enqueu=in_Enqueu+1;
+        queueMessages[in_Enqueu]=buffer;
+        if(out_dequeu==mCount_message-1)
+        {
+            printf("***BUFFER IS FULL***");
+        }
+        if (in_Enqueu == - 1 || in_Enqueu > out_dequeu)
+    {
+        printf("BUFFER Underflow NO MESSAGES \n");
+    }
+        mCount_message=0;
 
-void *receive_message(void* a)//producer
-{while(1){
-    pthread_mutex_lock(&e);
-    pthread_mutex_lock(&s);
-        buffer= count_message;
-    printf("\ncounter -> %d ", count_message);
-    printf("\nBUFFER -> %d",buffer);
-    if(rear == NTHREADS -1 && front!=0)
-                 rear=-1;
-            rear=rear+1;
-            queueMessages[rear]=buffer;
-            if(front==-1)
-            front=0;
-	printf("\n%d IS PRODUCED IN THE BUFFER",buffer);
-    printf("\nsem wait  .. \n");
-            count_message=0;    
+        sem_post(&sender_semaphore);
+        sem_post(&n);
+        sleep(2);
 
-    pthread_mutex_unlock(&s);
-    pthread_mutex_unlock(&n);
-          sleep(2);
-
- }
+    }
 }
 
 
 
 void *consumer_message(void* a)//read buffer
 
-{     while(1){
-      
-        pthread_mutex_lock(&n);
-        pthread_mutex_lock(&s);
-printf("\n%d IS CONSUMNED FROM THE BUFFER",queueMessages[front++]);
-         if(front ==NTHREADS)
-        {
-            front=0;
+{
+    while(1)
+    {
+ int shiftingQ=0;
+        sem_wait(&n);
+        sem_wait(&sender_semaphore);
+        if(shiftingQ){
+        printf("\n %d IS CONSUMNED FROM THE BUFFER",queueMessages[shiftingQ]);
         }
-        if(front-1==rear)
+        if(out_dequeu ==NTHREADS)
+
         {
-            front=-1;
-            rear=-1;
+            out_dequeu=0;
         }
-       pthread_mutex_unlock(&s);
-       pthread_mutex_unlock(&e);
+        if(out_dequeu-1==in_Enqueu)
+        {
+            out_dequeu=-1;
+            in_Enqueu=-1;
+        }
+      shiftingQ=out_dequeu++;
+
+        sem_post(&sender_semaphore);
+        sem_post(&e);
     }
 }
 
 int main()
 {
-front=-1;
-rear=-1;
-queueMessages=(int*)malloc(NTHREADS*sizeof(int));
-
-    while(num_attempts!=NTHREADS){
-    pthread_create(&pth_sender,NULL,send_message,NULL);//attemp
-    pthread_create(&pth_receiver,NULL,receive_message,NULL);//producer p2
-    pthread_create(&pth_consumer,NULL,consumer_message,NULL);//thread consumer 
-        num_attempts+=1;
+    out_dequeu=-1;
+    in_Enqueu=-1;
+    sem_init(&sender_semaphore, 0, 1);
+    sem_init(&n, 0, 1);
+    sem_init(&e, 0, 1);
+    queueMessages=(int*)malloc(NTHREADS*sizeof(int));
+    for(int processM=0; processM<NTHREADS; processM++)
+    {
+        pthread_create(&pth_sender,NULL,send_message,NULL);
+        pthread_create(&pth_receiver,NULL,receive_message,NULL);
+        pthread_create(&pth_consumer,NULL,consumer_message,NULL);
     }
-    
     pthread_join(pth_sender, NULL);
-    pthread_join(pth_receiver, NULL);   
-    pthread_join(pth_consumer, NULL);    
-
-    pthread_mutex_destroy(&s);
+    pthread_join(pth_receiver, NULL);
+    pthread_join(pth_consumer, NULL);
+    sem_destroy(&sender_semaphore);
 
     return 0;
 }
