@@ -15,6 +15,7 @@ pthread_t pth_receiver;
 sem_t sender_semaphore,n,e;
 int out_dequeu,in_Enqueu;
 int mCount_message;
+int shiftingQ;
 int buffer;
 int *queueMessages;
 
@@ -51,9 +52,9 @@ void *receive_message(void* a)
         {
             printf("***BUFFER IS FULL***");
         }
-        if (in_Enqueu == - 1 || in_Enqueu > out_dequeu)
+        if ( in_Enqueu > out_dequeu)
     {
-        printf("BUFFER Underflow NO MESSAGES \n");
+        printf("BUFFER Underflow NOT ALLOWED MESSAGES \n");
     }
         mCount_message=0;
 
@@ -71,12 +72,10 @@ void *consumer_message(void* a)//read buffer
 {
     while(1)
     {
- int shiftingQ=0;
         sem_wait(&n);
         sem_wait(&sender_semaphore);
-        if(shiftingQ){
         printf("\n %d IS CONSUMNED FROM THE BUFFER",queueMessages[shiftingQ]);
-        }
+        
         if(out_dequeu ==NTHREADS)
 
         {
@@ -95,7 +94,8 @@ void *consumer_message(void* a)//read buffer
 }
 
 int main()
-{
+{  shiftingQ=0;
+
     out_dequeu=-1;
     in_Enqueu=-1;
     sem_init(&sender_semaphore, 0, 1);
